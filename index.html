@@ -16,9 +16,6 @@
   @keyframes s { to { transform: rotate(360deg); } }
   h1 { font-size: 22px; margin: 0 0 6px; }
   p { opacity: .9; line-height: 1.7; margin: 6px 0; }
-  #help { display: none; margin-top: 18px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); border-radius: 18px; padding: 16px; }
-  a.go { display: inline-block; margin-top: 10px; background: #FFB347; color: #3B1A00; font-weight: 800; font-size: 18px; text-decoration: none; padding: 12px 26px; border-radius: 999px; box-shadow: 0 8px 20px rgba(0,0,0,.2); }
-  small { display: block; margin-top: 10px; opacity: .8; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -28,15 +25,35 @@
   <p>جارٍ فتح المنصّة...</p>
   <p id="slow" style="display:none">لحظة، نفتح المنصّة بطريقة أخرى...</p>
 </div></div>
-<iframe id="app" title="متابعة أعمال المعلّمين" allow="clipboard-write; autoplay"></iframe>
 <script>
   var APP = 'https://script.google.com/macros/s/AKfycbywLYjS4v5d7q1cAiw2LA8_FpuvIm2qavTDCIUiMO9ZboyuFXWhNVikep0_NlCEnhI/exec';
-  var ok = false, w = document.getElementById('wait');
-  window.addEventListener('message', function (e) { if (e.data && e.data.fu === 'ready') { ok = true; w.classList.add('hide'); } });
-  document.getElementById('app').src = APP;
-  /* the platform says "ready" within a few seconds. Some school networks and browsers refuse to show it inside this page:
-     then it opens by itself directly, with nothing for the user to do */
-  setTimeout(function () { if (!ok) { document.getElementById('slow').style.display = 'block'; setTimeout(function () { if (!ok) location.replace(APP); }, 800); } }, 7000);
+  /* Way 1 (works on every laptop): load the platform here and talk to Google WITHOUT any Google sign-in,
+     so a browser with several Google accounts, or a school Google account, cannot block it. */
+  var SHIM = '<script>(function(){var APP=' + JSON.stringify(APP) + ';' +
+    'function mk(s,f){return{withSuccessHandler:function(x){return mk(x,f)},withFailureHandler:function(x){return mk(s,x)},' +
+    'api:function(a){var n=0;(function go(){fetch(APP,{method:"POST",credentials:"omit",redirect:"follow",headers:{"Content-Type":"text/plain;charset=utf-8"},body:a})' +
+    '.then(function(r){if(!r.ok)throw new Error(r.status);return r.text()}).then(function(t){s&&s(t)})' +
+    '.catch(function(e){if(++n<3)setTimeout(go,800*n);else f&&f(e)})})()}}}' +
+    'window.google={script:{run:mk(null,null)}};})();<\/script>';
+  function way2() {
+    /* Way 2: the platform inside this page, then directly if the browser refuses */
+    var ok = false, w = document.getElementById('wait'), f = document.createElement('iframe');
+    window.addEventListener('message', function (e) { if (e.data && e.data.fu === 'ready') { ok = true; w.classList.add('hide'); } });
+    f.title = 'متابعة أعمال المعلّمين'; f.allow = 'clipboard-write; autoplay'; f.src = APP; document.body.appendChild(f);
+    setTimeout(function () { if (!ok) { document.getElementById('slow').style.display = 'block'; setTimeout(function () { if (!ok) location.replace(APP); }, 800); } }, 7000);
+  }
+  var done = false, timer = setTimeout(function () { if (!done) { done = true; way2(); } }, 15000);
+  fetch(APP + '?raw=1&t=' + Date.now(), { credentials: 'omit', redirect: 'follow', cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(function (html) {
+      if (done) return;
+      if (html.indexOf('function call(') < 0) throw new Error('not the platform');
+      done = true; clearTimeout(timer);
+      html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + SHIM; }) : SHIM + html;
+      document.open(); document.write(html); document.close();
+      document.title = 'متابعة أعمال المعلّمين · التربية الإسلامية';
+    })
+    .catch(function () { if (!done) { done = true; clearTimeout(timer); way2(); } });
 </script>
 </body>
 </html>
