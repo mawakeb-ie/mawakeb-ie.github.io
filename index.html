@@ -36,7 +36,7 @@
   document.getElementById('app').src = APP;
   /* the platform says "ready" within a few seconds. Some school networks and browsers refuse to show it inside this page:
      then it opens by itself directly, with nothing for the user to do */
-  setTimeout(function () { if (!ok) { document.getElementById('slow').style.display = 'block'; setTimeout(function () { if (!ok) location.replace(APP); }, 1200); } }, 12000);
+  setTimeout(function () { if (!ok) { document.getElementById('slow').style.display = 'block'; setTimeout(function () { if (!ok) location.replace(APP); }, 800); } }, 7000);
 </script>
 </body>
 </html>
